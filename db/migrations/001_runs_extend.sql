@@ -1,0 +1,3 @@
+ALTER TABLE runs ADD COLUMN universe TEXT;
+ALTER TABLE runs ADD COLUMN report_dir TEXT;
+ALTER TABLE runs ADD COLUMN note TEXT;

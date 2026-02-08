@@ -22,6 +22,8 @@ rm -f data/processed_sanitized/panel_close.csv \
       data/processed_sanitized/panel_returns.csv \
       data/processed_sanitized/baseline_equity.csv \
       data/processed_sanitized/baseline_trades.csv
+rm -f data/processed_sanitized/buyhold_equity.csv \
+      data/processed_sanitized/buyhold_trades.csv
 
 # --- ensure venv + python ---
 if [[ ! -x "${PY}" ]]; then
@@ -88,5 +90,17 @@ fi
   log " - data/processed_sanitized/baseline_equity.csv"
   log " - data/processed_sanitized/baseline_trades.csv"
   log "market-lab daily_update end"
+
+  log "STEP 8/8: buyhold_portfolio (paper=1000 EUR-equivalent)"
+  "${PY}" engine/evaluation/buyhold_portfolio.py \
+    --panel data/processed_sanitized/panel_close.csv \
+    --initial 1000 \
+    --fee-bps 5 \
+    --slippage-bps 2 \
+    --fixed 0 \
+    --out-equity data/processed_sanitized/buyhold_equity.csv \
+    --out-trades data/processed_sanitized/buyhold_trades.csv
+
+
 } 2>&1 | tee -a "${LOG_FILE}"
 

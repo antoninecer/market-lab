@@ -51,11 +51,11 @@ python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
 
-bin/daily_update.sh
-
-
 source ./startvenv.sh
-python cli/daily_update.py
+
+python cli/daily_update.py && python cli/make_report.py
+
+
 
 8.2.1:54
 Záznam stavu (checkpoint)

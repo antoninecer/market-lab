@@ -176,3 +176,73 @@ Systém používá S&P 500 (SPY) jako:
 SPY není primární obchodní instrument,
 ale řídicí signál trhu.
 
+“Strategy Buckets v1”
+
+Bucket A: NVDA, QQQ, XLE (případně GLD) → FAST scale-in
+
+Bucket B: SPY, MSFT, JNJ → SLOW DCA + drawdown add + (měsíční/kvartální) rebalance
+
+Společné: avg_entry + náklady + break-even guard
+
+To je “záznam rozhodnutí” (ADR) a od toho se pak odrazíme v kódu.
+
+## Exit logika (ARMED → SELL)
+
+Cíl: neprodávat “jen proto, že už jsme chtěli prodávat”, ale zároveň mít brzdu, když se trend láme.
+Používáme stavový automat: NORMAL → ARMED → EXIT.
+
+### Definice pomocných veličin
+
+- MA10 = klouzavý průměr 10D z close
+- MA50 = klouzavý průměr 50D z close
+- ATR14 = Average True Range (14D) z OHLC
+- peak = poslední swingové maximum od vstupu (pracovně: maximum close od vstupního dne)
+- drawdown_from_peak = (peak - close) / peak
+
+### Klasifikace aktiv (pro volbu brzdy)
+
+- stabilní: SPY, JNJ, GLD
+- volatilní: QQQ, NVDA, XLE
+
+### Stav NORMAL
+V NORMAL držíme pozici, pouze aktualizujeme peak a trailing stop.
+
+### Stav ARMED (2/3 podmínek)
+Přechod do ARMED nastane, když platí alespoň 2 z těchto 3 podmínek:
+
+1) Peak drawdown (oslabení od maxima):
+   - close <= peak - k1 * ATR14
+   - k1 = 2.0 (stabilní), 3.0 (volatilní)
+
+2) Ztráta tempa (krátkodobá slabost):
+   - close < MA10
+
+3) Dlouhodobý trend už není “komfortní”:
+   - close < MA50
+
+Poznámka: ARMED neznamená prodat. Znamená “zpozorni a připrav exit”.
+
+### Stav EXIT (SELL)
+SELL nastane při splnění kterékoliv z následujících podmínek:
+
+A) Plné potvrzení slabosti:
+   - platí všechny 3 podmínky z ARMED (3/3)
+
+NEBO
+
+B) Tvrdá brzda (trailing stop podle ATR):
+   - trailing_stop = peak - m * ATR14
+   - SELL když close <= trailing_stop
+   - m = 3.0 (stabilní), 5.0 (volatilní)
+
+### Reset po prodeji
+Po SELL:
+- stav = NORMAL
+- peak = undef (reset)
+- trailing_stop = undef (reset)
+
+### Poznámky k chování
+- ARMED je “povolení být připraven”, ne povinnost jednat.
+- Tvrdá brzda chrání kapitál, ale dýchá podle volatility (ATR), ne podle fixního procenta.
+- Parametry k1 a m budou laděny na backtestu, ale start je záměrně konzervativní.
+
